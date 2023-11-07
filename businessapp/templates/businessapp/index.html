@@ -1,0 +1,206 @@
+{% extends "businessapp/base.html" %}
+
+{% block content %}
+  <h2>Business Information</h2>
+  <!-- Add HTML form to capture business information here -->
+
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Business App</title>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+</head>
+<body>
+
+<h2 id="change-heading">Create Business</h2>
+<form id="create-form">
+    {% csrf_token %}
+    <input type="hidden" id="business-id" name="business-id" value="">
+    <label for="name">Name:</label><br>
+    <input type="text" id="name" name="name"><br>
+    <label for="address">Address:</label><br>
+    <input type="text" id="address" name="address"><br>
+    <label for="owner_info">Owner Info:</label><br>
+    <input type="text" id="owner_info" name="owner_info"><br>
+    <label for="employee_size">Employee Size:</label><br>
+    <input type="text" id="employee_size" name="employee_size"><br><br>
+    <button type="submit">Create</button>
+</form>
+<br>
+<button onclick="clearForm()">Refresh</button>
+
+<input type="text" id="search-input" placeholder="Enter Value">
+<button onclick="searchBusiness()">Search</button>
+
+<table id="business-table">
+    <thead>
+        <tr id="table-header">
+            <th>Name</th>
+            <th>Address</th>
+            <th>Owner Info</th>
+            <th>Employee Size</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody id="table-body">
+    </tbody>
+</table>
+
+<script>
+    function clearForm() {
+          location.reload();
+      }
+
+    // $(document).ready(function() {
+    //     $('#create-form').submit(function(event) {
+    //         event.preventDefault();
+    //         $.ajax({
+    //             type: 'POST',
+    //             url: 'perform_operation/create/',
+    //             data: {
+    //                 'name': $('#name').val(),
+    //                 'address': $('#address').val(),
+    //                 'owner_info': $('#owner_info').val(),
+    //                 'employee_size': $('#employee_size').val(),
+    //                 'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val()
+    //             },
+    //             success: function(response) {
+    //                 alert('Business created successfully!');
+    //             },
+    //             error: function(error) {
+    //                 alert('An error occurred while creating the business');
+    //             }
+    //         });
+    //     });
+    // });
+
+    $(document).ready(function() {
+        $('#create-form').submit(function(event) {
+            event.preventDefault();
+            var id = $('#business-id').val();
+            var url = id ? 'perform_operation/update/' + id + '/' : 'perform_operation/create/';
+
+            var requestData = {
+                'name': $('#name').val(),
+                'address': $('#address').val(),
+                'owner_info': $('#owner_info').val(),
+                'employee_size': $('#employee_size').val(),
+                'csrfmiddlewaretoken': $('input[name=csrfmiddlewaretoken]').val()
+            };
+
+            $.ajax({
+                type: 'POST',
+                url: url,
+                data: requestData,
+                success: function(response) {
+                    if (id) {
+                        alert('Business updated successfully!');
+                    } else {
+                        alert('Business created successfully!');
+                    }
+                },
+                error: function(error) {
+                    if (id) {
+                        alert('An error occurred while updating the business');
+                    } else {
+                        alert('An error occurred while creating the business');
+                    }
+                }
+            });
+        });
+    });
+
+    function loadBusinesses() {
+            $.ajax({
+                type: 'GET',
+                url: 'perform_operation/list/',
+                success: function(response) {
+                    $('#table-body').empty();  // Clear previous data
+                    response.businesses.forEach(function(business) {
+                        var row = '<tr><td>' + business.name + '</td><td>' + business.address + '</td><td>' + business.owner_info + '</td><td>' + business.employee_size + '</td>';
+                        row += '<td><button onclick="updateBusiness(' + business.id + ')">Update</button>';
+                        row += ' <button onclick="deleteBusiness(' + business.id + ')">Delete</button></td></tr>';
+                        $('#table-body').append(row);
+                    });
+                },
+                error: function(error) {
+                    alert('An error occurred while loading businesses');
+                }
+            });
+        }
+
+        loadBusinesses();  // Load businesses on page load
+
+        function updateBusiness(id) {
+          $.ajax({
+            type: 'GET',
+            url: 'perform_operation/get_business/' + id + '/',
+            success: function(response) {
+                var business = response.business;
+                $('#business-id').val(business.id);
+                $('#name').val(business.name);
+                $('#address').val(business.address);
+                $('#owner_info').val(business.owner_info);
+                $('#employee_size').val(business.employee_size);
+                $('#create-form button').text('Update');
+                $('#change-heading').text('Update')
+            },
+            error: function(error) {
+                alert('An error occurred while getting the business details');
+            }
+        });
+        }
+
+        function deleteBusiness(id) {
+                $.ajax({
+              type: 'POST',
+              url: 'perform_operation/delete/' + id + '/',
+              data: {'csrfmiddlewaretoken': '{{ csrf_token }}'},
+              success: function(response) {
+                  alert('Business deleted successfully!');
+                  loadBusinesses();  // Refresh the list of businesses after deletion
+              },
+              error: function(error) {
+                  alert('An error occurred while deleting the business');
+              }
+          });
+            alert('Delete business with id: ' + id);
+        }
+
+        $('#create-form').submit(function(event) {
+            event.preventDefault();
+            $.ajax({
+                // Existing code for the AJAX create operation
+            });
+            loadBusinesses();  // Refresh the list of businesses after creation
+        });
+    
+    function searchBusiness() {
+        var query = $('#search-input').val();
+        $.ajax({
+            type: 'GET',
+            url: 'perform_operation/search/',
+            data: {'query': query},
+            success: function(response) {
+                $('#business-table').find('tbody').remove();  // Clear previous data
+                var tbody = $('<tbody>');
+                response.businesses.forEach(function(business) {
+                    var row = '<tr><td>' + business.name + '</td><td>' + business.address + '</td><td>' + business.owner_info + '</td><td>' + business.employee_size + '</td>';
+                    row += '<td><button onclick="updateBusiness(' + business.id + ')">Update</button>';
+                    row += ' <button onclick="deleteBusiness(' + business.id + ')">Delete</button></td></tr>';
+                    tbody.append(row);
+                });
+                $('#business-table').append(tbody);
+            },
+            error: function(error) {
+                alert('An error occurred while searching for businesses');
+            }
+        });
+    }
+</script>
+
+</body>
+</html>
+
+{% endblock %}
