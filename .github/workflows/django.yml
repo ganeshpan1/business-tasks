@@ -44,6 +44,7 @@ jobs:
           port: ${{ secrets.PORT }}
           script: |
             cd /home/ubuntu/Projects/business-tasks
+            git pull origin main
             sudo docker-compose build
             sudo docker-compose up -d
             echo "Build Done"
